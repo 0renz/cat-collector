@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Filmes',
+      title: 'Colecionador de Gatos',
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Roboto',

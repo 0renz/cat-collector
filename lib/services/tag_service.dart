@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'gemini_log_service.dart';
 
 /// Erro amigável ao interpretar o pedido do usuário.
 class TagServiceException implements Exception {
@@ -145,34 +147,73 @@ Examples:
       },
     };
 
-    final http.Response response;
+    // Dados que vão para o log, preenchidos conforme a chamada avança. O log
+    // é gravado no "finally", então sucessos e falhas ficam registrados.
+    final stopwatch = Stopwatch()..start();
+    int? httpStatus;
+    String? rawResponse;
+    dynamic decoded;
+    String? responseText;
+    var tags = <String>[];
+    String? errorMessage;
+
     try {
-      response = await http
-          .post(
-            uri,
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': _geminiKey,
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 20));
+      final http.Response response;
+      try {
+        response = await http
+            .post(
+              uri,
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': _geminiKey,
+              },
+              body: jsonEncode(body),
+            )
+            .timeout(const Duration(seconds: 20));
+      } catch (e) {
+        throw TagServiceException('sem conexão com o Gemini ($e)');
+      }
+
+      httpStatus = response.statusCode;
+      rawResponse = utf8.decode(response.bodyBytes);
+      decoded = _tryDecode(rawResponse);
+
+      if (response.statusCode != 200) {
+        throw TagServiceException(_describeHttpError(response.statusCode, decoded));
+      }
+
+      final text = _extractText(decoded);
+      if (text == null) {
+        throw const TagServiceException('o Gemini não devolveu uma resposta');
+      }
+      responseText = text;
+
+      tags = _parseTags(text, availableTags);
+      return tags;
     } catch (e) {
-      throw TagServiceException('sem conexão com o Gemini ($e)');
+      errorMessage = e is TagServiceException ? e.message : '$e';
+      rethrow;
+    } finally {
+      stopwatch.stop();
+      // Sem await: a gravação do log não atrasa a busca do gato, e
+      // GeminiLogService.log nunca lança exceção.
+      unawaited(
+        GeminiLogService().log(
+          GeminiLogEntry.fromApi(
+            message: cleanWish,
+            model: _geminiModel,
+            latencyMs: stopwatch.elapsedMilliseconds,
+            availableTagsCount: availableTags.length,
+            httpStatus: httpStatus,
+            rawResponse: rawResponse,
+            decoded: decoded,
+            responseText: responseText,
+            tags: tags,
+            error: errorMessage,
+          ),
+        ),
+      );
     }
-
-    final decoded = _tryDecode(utf8.decode(response.bodyBytes));
-
-    if (response.statusCode != 200) {
-      throw TagServiceException(_describeHttpError(response.statusCode, decoded));
-    }
-
-    final text = _extractText(decoded);
-    if (text == null) {
-      throw const TagServiceException('o Gemini não devolveu uma resposta');
-    }
-
-    return _parseTags(text, availableTags);
   }
 
   dynamic _tryDecode(String source) {
