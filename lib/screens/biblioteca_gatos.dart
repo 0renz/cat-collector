@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../components/confirm_dialog.dart';
@@ -21,6 +23,42 @@ class _BibliotecaGatosScreenState extends State<BibliotecaGatosScreen> {
 
   // Tags escolhidas no filtro. Vazio = todos os gatos aparecem.
   final Set<String> _selectedTags = {};
+
+  // Gato favorito (= foto de perfil), atualizado ao vivo pelo Firestore.
+  String? _favoriteCatId;
+  StreamSubscription<String?>? _favoriteSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _favoriteSubscription = _userService.favoriteCatIdStream().listen(
+      (id) {
+        if (mounted) setState(() => _favoriteCatId = id);
+      },
+      onError: (Object e) => debugPrint('Erro ao ler o gato favorito: $e'),
+    );
+  }
+
+  @override
+  void dispose() {
+    _favoriteSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _toggleFavorite(SavedCat cat) async {
+    final wasFavorite = cat.id == _favoriteCatId;
+    try {
+      if (wasFavorite) {
+        await _userService.clearFavoriteCat();
+        _showMessage('Gato favorito removido. A foto de perfil voltou ao padrão.');
+      } else {
+        await _userService.setFavoriteCat(cat.id);
+        _showMessage('Este gato agora é sua foto de perfil!');
+      }
+    } catch (e) {
+      _showMessage('Não foi possível atualizar o gato favorito: $e');
+    }
+  }
 
   void _showMessage(String message) {
     if (!mounted) return;
@@ -56,10 +94,14 @@ class _BibliotecaGatosScreenState extends State<BibliotecaGatosScreen> {
   }
 
   Future<void> _deleteCat(SavedCat cat) async {
+    final isFavorite = cat.id == _favoriteCatId;
     final confirmado = await confirmarAcao(
       context,
       titulo: 'Excluir gato',
-      mensagem: 'Tem certeza de que deseja excluir este gato da biblioteca?',
+      mensagem: isFavorite
+          ? 'Tem certeza de que deseja excluir este gato da biblioteca? '
+              'Ele é seu gato favorito, então sua foto de perfil também será removida.'
+          : 'Tem certeza de que deseja excluir este gato da biblioteca?',
     );
     if (!confirmado) return;
 
@@ -166,8 +208,16 @@ class _BibliotecaGatosScreenState extends State<BibliotecaGatosScreen> {
       itemCount: cats.length,
       itemBuilder: (context, index) {
         final cat = cats[index];
+        final isFavorite = cat.id == _favoriteCatId;
         return Card(
           clipBehavior: Clip.antiAlias,
+          // Borda dourada destaca o gato que é a foto de perfil.
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: isFavorite
+                ? const BorderSide(color: Colors.amber, width: 3)
+                : BorderSide.none,
+          ),
           child: Column(
             children: [
               Expanded(
@@ -193,13 +243,24 @@ class _BibliotecaGatosScreenState extends State<BibliotecaGatosScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
+                    tooltip: isFavorite
+                        ? 'Remover dos favoritos (foto de perfil)'
+                        : 'Definir como gato favorito (foto de perfil)',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _toggleFavorite(cat),
+                    icon: Icon(isFavorite ? Icons.star : Icons.star_border),
+                    color: Colors.amber.shade700,
+                  ),
+                  IconButton(
                     tooltip: 'Editar tags',
+                    visualDensity: VisualDensity.compact,
                     onPressed: () => _editTags(cat),
                     icon: const Icon(Icons.edit_outlined),
                     color: Colors.deepPurple,
                   ),
                   IconButton(
                     tooltip: 'Excluir gato',
+                    visualDensity: VisualDensity.compact,
                     onPressed: () => _deleteCat(cat),
                     icon: const Icon(Icons.delete_outline),
                     color: Colors.red,

@@ -161,12 +161,57 @@ class UserService {
         .snapshots();
   }
 
+  /// Exclui o gato da biblioteca. Se ele for o gato favorito, a foto de perfil
+  /// também é removida, na mesma operação, para nunca apontar para um gato
+  /// que já não existe.
   Future<void> deleteCat(String catId) async {
-    final user = _auth.currentUser;
-    if (user == null) {
-      throw StateError('É necessário estar autenticado para excluir um gato.');
-    }
+    final user = _requireUser('excluir um gato');
+    final userReference = _users.doc(user.uid);
 
-    await _savedCats(user.uid).doc(catId).delete();
+    final userSnapshot = await userReference.get();
+    final isFavorite = userSnapshot.data()?['favoriteCatId'] == catId;
+
+    final batch = FirebaseFirestore.instance.batch();
+    batch.delete(_savedCats(user.uid).doc(catId));
+    if (isFavorite) {
+      batch.set(
+        userReference,
+        {'favoriteCatId': FieldValue.delete()},
+        SetOptions(merge: true),
+      );
+    }
+    await batch.commit();
+  }
+
+  /// ID do gato favorito do usuário (null se não houver). A foto de perfil é
+  /// a imagem desse gato; guardamos só o ID, em um campo próprio, para o
+  /// login com GitHub (que atualiza o photoURL) nunca sobrescrevê-lo.
+  Stream<String?> favoriteCatIdStream() {
+    final user = _auth.currentUser;
+    if (user == null) return Stream.value(null);
+
+    return _users.doc(user.uid).snapshots().map((snapshot) {
+      final id = snapshot.data()?['favoriteCatId'];
+      return id is String && id.isNotEmpty ? id : null;
+    });
+  }
+
+  /// Marca o gato como favorito, tornando-o a foto de perfil. Só existe um
+  /// favorito por vez: marcar outro substitui o anterior.
+  Future<void> setFavoriteCat(String catId) async {
+    final user = _requireUser('escolher um gato favorito');
+    await _users.doc(user.uid).set(
+      {'favoriteCatId': catId},
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Remove o gato favorito (o perfil volta a mostrar o ícone padrão).
+  Future<void> clearFavoriteCat() async {
+    final user = _requireUser('remover o gato favorito');
+    await _users.doc(user.uid).set(
+      {'favoriteCatId': FieldValue.delete()},
+      SetOptions(merge: true),
+    );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'biblioteca_gatos.dart';
 import 'gatos.dart';
@@ -18,6 +20,11 @@ class _MenuOptionsState extends State<MenuOptions> {
   int pageIndex = 0;
   String userName = 'Usuário';
 
+  // Gato favorito = foto de perfil. Atualiza ao vivo quando o usuário marca
+  // ou desmarca um favorito na biblioteca.
+  String? favoriteCatId;
+  StreamSubscription<String?>? _favoriteSubscription;
+
   final List<String> paginas = [
     'Encontrar gatos',
     'Biblioteca de gatos',
@@ -34,6 +41,12 @@ class _MenuOptionsState extends State<MenuOptions> {
       userName = displayName;
     }
     if (currentUser != null) {
+      _favoriteSubscription = UserService().favoriteCatIdStream().listen(
+        (id) {
+          if (mounted) setState(() => favoriteCatId = id);
+        },
+        onError: (Object e) => debugPrint('Erro ao ler o gato favorito: $e'),
+      );
       UserService().getUser().then((user) {
         if (user != null && mounted) {
           setState(() {
@@ -44,6 +57,42 @@ class _MenuOptionsState extends State<MenuOptions> {
         }
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _favoriteSubscription?.cancel();
+    super.dispose();
+  }
+
+  Widget _buildAvatar() {
+    const size = 64.0;
+    const fallback = Icon(Icons.person, size: 36, color: deepPurple);
+    final id = favoriteCatId;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: ClipOval(
+        child: id == null
+            ? fallback
+            : Image.network(
+                UserService.catImageUrl(id),
+                key: ValueKey(id),
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return fallback;
+                },
+                errorBuilder: (context, error, stackTrace) => fallback,
+              ),
+      ),
+    );
   }
 
   void setPaginaAtual(int index) {
@@ -120,15 +169,7 @@ class _MenuOptionsState extends State<MenuOptions> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: 36,
-                      color: deepPurple,
-                    ),
-                  ),
+                  _buildAvatar(),
 
                   SizedBox(height: 18),
 
