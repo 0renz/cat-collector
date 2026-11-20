@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Gatos',
+      title: 'Colecionador de Gatos',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       home: AuthScreen(),

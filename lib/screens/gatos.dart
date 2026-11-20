@@ -219,7 +219,7 @@ class GatosScreenState extends State<GatosScreen> {
       textInputAction: TextInputAction.search,
       onSubmitted: (_) => loadAnotherCat(),
       decoration: appInputDecoration(
-        hint: 'Ex.: gatos brancos e fofinhos',
+        hint: 'Ex.: gatos pretos deitados',
         helper: CatTagService.isConfigured
             ? null
             : 'Gemini não configurado: o texto será ignorado.',

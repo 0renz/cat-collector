@@ -82,7 +82,7 @@ class LoginScreenState extends State<LoginScreen> {
     return AuthLayout(
       formKey: _formKey,
       title: 'Bem-vindo de volta',
-      subtitle: 'Entre para ver os gatinhos de hoje.',
+      subtitle: 'Entre para ver os gatos de hoje.',
       children: [
         MyTextField(
           controller: _emailController,
