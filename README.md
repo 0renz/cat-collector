@@ -1,17 +1,38 @@
-# trabalho_final
+# Gatos
 
-A new Flutter project.
+Aplicativo Flutter para descobrir e organizar fotos de gatos.
 
-## Getting Started
+## Funcionalidades
 
-This project is a starting point for a Flutter application.
+- Cadastro, login e logout com Firebase Authentication.
+- Login social com GitHub.
+- Busca de gatos pela [CATAAS](https://cataas.com/), aleatória ou por tags.
+- Interpretação de pedidos em linguagem natural com Gemini (opcional).
+- Biblioteca pessoal sincronizada com Cloud Firestore.
+- Filtros e edição de tags dos gatos salvos.
+- Gato favorito usado como foto de perfil.
 
-A few resources to get you started if this is your first Flutter project:
+## Tecnologias
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Flutter/Dart, Firebase Authentication, Cloud Firestore, CATAAS API e Gemini API.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Como executar
+
+Pré-requisitos: Flutter instalado e um projeto Firebase configurado para as
+plataformas desejadas.
+
+```bash
+flutter pub get
+flutter run
+```
+
+Para habilitar a busca por descrição, informe a chave do Gemini sem gravá-la no
+código:
+
+```bash
+flutter run --dart-define=GEMINI_API_KEY=sua_chave
+```
+
+O ponto de entrada está em [`lib/main.dart`](lib/main.dart). As telas ficam em
+[`lib/screens`](lib/screens), os serviços em [`lib/services`](lib/services) e
+os componentes reutilizáveis em [`lib/components`](lib/components).
