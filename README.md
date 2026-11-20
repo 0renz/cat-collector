@@ -39,50 +39,20 @@ os componentes reutilizáveis em [`lib/components`](lib/components).
 
 ## Telas do aplicativo
 
-### Criar conta
+As principais telas estão organizadas abaixo em uma grade compacta:
 
-Cadastro de um novo usuário no aplicativo.
+| Criar conta<br><sub>Cadastro de usuário</sub> | Logar<br><sub>Acesso à conta</sub> |
+|---|---|
+| <img src="screenshots/criarconta.jpg" alt="Tela de criação de conta" width="220"> | <img src="screenshots/logar.jpg" alt="Tela de login" width="220"> |
 
-![Tela de criação de conta](screenshots/criarconta.jpg)
+| Menu<br><sub>Navegação principal</sub> | Buscar por tags com Gemini<br><sub>Busca por descrição</sub> |
+|---|---|
+| <img src="screenshots/menu.jpg" alt="Menu principal" width="220"> | <img src="screenshots/buscarportagsgemini.jpg" alt="Busca por tags com Gemini" width="220"> |
 
-### Logar
+| Filtrar por tags<br><sub>Filtro da biblioteca</sub> | Editar tags<br><sub>Edição de tags salvas</sub> |
+|---|---|
+| <img src="screenshots/filtrarportags.jpg" alt="Filtro por tags" width="220"> | <img src="screenshots/editartags.jpg" alt="Edição de tags" width="220"> |
 
-Tela de login para acessar uma conta existente.
-
-![Tela de login](screenshots/logar.jpg)
-
-### Menu
-
-Menu principal com acesso à descoberta e à biblioteca de gatos.
-
-![Menu principal](screenshots/menu.jpg)
-
-### Buscar por tags com Gemini
-
-Busca de gatos usando uma descrição interpretada pelo Gemini.
-
-![Busca por tags com Gemini](screenshots/buscarportagsgemini.jpg)
-
-### Filtrar por tags
-
-Filtragem dos gatos salvos na biblioteca por tags.
-
-![Filtro por tags](screenshots/filtrarportags.jpg)
-
-### Editar tags
-
-Edição das tags associadas a um gato salvo.
-
-![Edição de tags](screenshots/editartags.jpg)
-
-### Definir gato favorito
-
-Seleção de um gato salvo como favorito e foto de perfil.
-
-![Definição de gato favorito](screenshots/definirgatofavorito.jpg)
-
-### Excluir gato
-
-Confirmação da exclusão de um gato da biblioteca.
-
-![Exclusão de gato](screenshots/excluirgato.jpg)
+| Definir gato favorito<br><sub>Foto de perfil</sub> | Excluir gato<br><sub>Remoção da biblioteca</sub> |
+|---|---|
+| <img src="screenshots/definirgatofavorito.jpg" alt="Definição de gato favorito" width="220"> | <img src="screenshots/excluirgato.jpg" alt="Exclusão de gato" width="220"> |
