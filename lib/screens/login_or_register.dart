@@ -24,14 +24,14 @@ class LoginOrRegisterScreenState extends State<LoginOrRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (showLoginScreen) {
-      return LoginScreen(
-        onTap: togglePages,
-      );
-    } else {
-      return RegisterScreen(
-        onTap: togglePages,
-      );
-    }
+    // Troca com transição suave entre as duas telas.
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: showLoginScreen
+          ? LoginScreen(key: const ValueKey('login'), onTap: togglePages)
+          : RegisterScreen(key: const ValueKey('register'), onTap: togglePages),
+    );
   }
 }

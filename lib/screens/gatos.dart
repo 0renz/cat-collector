@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/tag_service.dart';
 import '../services/user_service.dart';
+import '../components/fade_in.dart';
+import '../theme/app_theme.dart';
 
 class GatosScreen extends StatefulWidget {
   const GatosScreen({super.key});
@@ -216,56 +218,100 @@ class GatosScreenState extends State<GatosScreen> {
       controller: _wishController,
       textInputAction: TextInputAction.search,
       onSubmitted: (_) => loadAnotherCat(),
-      decoration: InputDecoration(
-        hintText: 'Ex.: quero gatos brancos e fofinhos',
-        helperText: CatTagService.isConfigured
+      decoration: appInputDecoration(
+        hint: 'Ex.: gatos brancos e fofinhos',
+        helper: CatTagService.isConfigured
             ? null
             : 'Gemini não configurado: o texto será ignorado.',
-        prefixIcon: const Icon(Icons.auto_awesome_outlined),
-        suffixIcon: IconButton(
-          tooltip: 'Limpar',
-          icon: const Icon(Icons.close),
-          onPressed: () => _wishController.clear(),
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+        radius: 28,
+        prefix: const Icon(Icons.auto_awesome, color: AppColors.primary),
+        suffix: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _wishController,
+          builder: (context, value, _) {
+            if (value.text.isEmpty) return const SizedBox.shrink();
+            return IconButton(
+              tooltip: 'Limpar',
+              icon: const Icon(Icons.close),
+              onPressed: _wishController.clear,
+            );
+          },
         ),
       ),
     );
   }
 
+  /// Tags em uso e avisos, com animação de altura quando aparecem/somem.
   Widget _buildStatus() {
     final message = _statusMessage;
-    if (_activeTags.isEmpty && message == null) return const SizedBox.shrink();
+    final Widget content;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_activeTags.isNotEmpty)
-            Wrap(
-              spacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                const Text('Tags:', style: TextStyle(fontSize: 13)),
-                for (final tag in _activeTags)
-                  Chip(
-                    label: Text(tag),
-                    visualDensity: VisualDensity.compact,
-                  ),
-              ],
-            ),
-          if (message != null)
-            Text(
-              message,
-              style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
-            ),
-        ],
+    if (_activeTags.isEmpty && message == null) {
+      content = const SizedBox.shrink(key: ValueKey('sem-status'));
+    } else {
+      content = Padding(
+        key: const ValueKey('com-status'),
+        padding: const EdgeInsets.only(top: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_activeTags.isNotEmpty)
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Icon(Icons.sell_outlined, size: 16, color: AppColors.muted),
+                  for (final tag in _activeTags)
+                    Chip(
+                      label: Text(tag),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                ],
+              ),
+            if (message != null)
+              Padding(
+                padding: EdgeInsets.only(top: _activeTags.isNotEmpty ? 8 : 0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 1),
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: SizedBox(
+        width: double.infinity,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: content,
+        ),
       ),
     );
   }
@@ -275,8 +321,17 @@ class GatosScreenState extends State<GatosScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Não foi possível carregar o gato.'),
-          const SizedBox(height: 8),
+          const Icon(
+            Icons.sentiment_dissatisfied_outlined,
+            size: 40,
+            color: AppColors.muted,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Não foi possível carregar o gato.',
+            style: TextStyle(color: AppColors.muted),
+          ),
+          const SizedBox(height: 4),
           TextButton.icon(
             onPressed: loadAnotherCat,
             icon: const Icon(Icons.refresh),
@@ -296,15 +351,76 @@ class GatosScreenState extends State<GatosScreen> {
       return _buildRetry();
     }
     // contain: o gato inteiro sempre aparece dentro da moldura, sem cortes.
-    return Image.network(
-      UserService.catImageUrl(catId),
-      key: ValueKey(catId),
-      fit: BoxFit.contain,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return const Center(child: CircularProgressIndicator());
-      },
-      errorBuilder: (context, error, stackTrace) => _buildRetry(),
+    return SizedBox.expand(
+      child: Image.network(
+        UserService.catImageUrl(catId),
+        key: ValueKey(catId),
+        fit: BoxFit.contain,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded) return child;
+          return AnimatedOpacity(
+            opacity: frame == null ? 0 : 1,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOut,
+            child: child,
+          );
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const Center(child: CircularProgressIndicator());
+        },
+        errorBuilder: (context, error, stackTrace) => _buildRetry(),
+      ),
+    );
+  }
+
+  /// Botão quadrado de "guardar": o ícone troca com animação de escala e
+  /// vira um indicador de progresso enquanto grava.
+  Widget _buildSaveButton({
+    required bool canSave,
+    required String label,
+  }) {
+    final Widget icon;
+    if (_isSaving) {
+      icon = const SizedBox(
+        key: ValueKey('salvando'),
+        width: 22,
+        height: 22,
+        child: CircularProgressIndicator(strokeWidth: 2.5),
+      );
+    } else {
+      icon = Icon(
+        _isSaved ? Icons.bookmark_added : Icons.bookmark_add_outlined,
+        key: ValueKey(_isSaved),
+      );
+    }
+
+    return Tooltip(
+      message: label,
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: canSave ? _saveCat : null,
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(56, 56),
+            backgroundColor: AppColors.primarySoft,
+            foregroundColor: AppColors.primary,
+            // Depois de guardar, o botão continua colorido (com o "check").
+            disabledBackgroundColor:
+                _isSaved ? AppColors.primarySoft : AppColors.sand,
+            disabledForegroundColor:
+                _isSaved ? AppColors.primary : AppColors.muted,
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            transitionBuilder: (child, animation) =>
+                ScaleTransition(scale: animation, child: child),
+            child: icon,
+          ),
+        ),
+      ),
     );
   }
 
@@ -318,52 +434,62 @@ class GatosScreenState extends State<GatosScreen> {
             : 'Guardar gato';
 
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Gatos',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text('Diga que tipo de gato você quer e toque em "Outro gato".'),
-          const SizedBox(height: 16),
           _buildWishField(),
           _buildStatus(),
           const SizedBox(height: 16),
+          // Moldura de "foto": o gato troca com um fade suave.
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                color: Colors.grey.shade200,
-                alignment: Alignment.center,
-                child: _buildImage(),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: AppShadows.soft,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: ColoredBox(
+                  color: AppColors.sand,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    layoutBuilder: expandedSwitcherLayout,
+                    child: KeyedSubtree(
+                      key: ValueKey(
+                        _isLoading ? 'carregando' : (_catId ?? 'erro'),
+                      ),
+                      child: _buildImage(),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: canSave ? _saveCat : null,
-            icon: Icon(
-              _isSaved ? Icons.bookmark_added_outlined : Icons.bookmark_add_outlined,
-            ),
-            label: Text(saveLabel),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _isLoading ? null : loadAnotherCat,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Outro gato'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
+          Row(
+            children: [
+              _buildSaveButton(canSave: canSave, label: saveLabel),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : loadAnotherCat,
+                  // Cada novo gato gira o ícone uma volta completa.
+                  icon: AnimatedRotation(
+                    turns: _requestId.toDouble(),
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                    child: const Icon(Icons.refresh),
+                  ),
+                  label: const Text('Outro gato'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(0, 56),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

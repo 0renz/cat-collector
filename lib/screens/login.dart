@@ -1,10 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/user_service.dart';
+import '../components/auth_layout.dart';
 import '../components/my_button.dart';
 import '../components/my_textfield.dart';
 import '../components/square_tile.dart';
-
+import '../theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   final Function()? onTap;
@@ -78,123 +79,59 @@ class LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color.fromARGB(255, 243, 243, 243),
-      resizeToAvoidBottomInset: true,
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 50),
-                SizedBox(
-                  height: 100,
-                  child: ClipOval(child: Image.asset('assets/logos/logo.png')),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Olá, efetue o login para continuar. ',
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 25),
-
-                MyTextField(
-                  controller: _emailController,
-                  hintText: 'Email',
-                  icon: Icon(Icons.email_outlined),
-                  obscureText: false,
-                  capitalization: false,
-                ),
-                const SizedBox(height: 15),
-
-                MyTextField(
-                  controller: _passwordController,
-                  hintText: 'Senha',
-                  icon: Icon(Icons.lock_outline),
-                  obscureText: true,
-                  capitalization: false,
-                ),
-                const SizedBox(height: 15),
-
-                MyButton(
-                  onPressed: _handleSignIn,
-                  formKey: _formKey,
-                  text: 'Logar',
-                ),
-                if (_isLoading) const CircularProgressIndicator(),
-                const SizedBox(height: 20),
-
-                // continue with
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Divider(
-                          thickness: 0.5,
-                          color: Colors.grey.shade400,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8, right: 8),
-                        child: Text(
-                          'OU',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      ),
-                      Expanded(
-                        child: Divider(
-                          thickness: 0.5,
-                          color: Colors.grey.shade400,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                //Login with github button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SquareTile(
-                      onTap: _handleGitHubSignIn,
-                      imagePath: 'assets/icons/github.svg',
-                      height: 70,
-                    )
-                  ],
-                ),
-                const SizedBox(height: 30),
-
-                // not a memeber ? register now
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Novo por aqui? ',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                    GestureDetector(
-                      onTap: widget.onTap,
-                      child: Text(
-                        'Registre-se',
-                        style: TextStyle(
-                            color: Color(0xffE01C2F),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12),
-                      ),
-                    ),
-                  ],
-                )
-              ],
-            ),
+    return AuthLayout(
+      formKey: _formKey,
+      title: 'Bem-vindo de volta',
+      subtitle: 'Entre para ver os gatinhos de hoje.',
+      children: [
+        MyTextField(
+          controller: _emailController,
+          hintText: 'Email',
+          icon: const Icon(Icons.email_outlined),
+          obscureText: false,
+          capitalization: false,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 14),
+        MyTextField(
+          controller: _passwordController,
+          hintText: 'Senha',
+          icon: const Icon(Icons.lock_outline),
+          obscureText: true,
+          capitalization: false,
+        ),
+        const SizedBox(height: 22),
+        MyButton(
+          onPressed: _handleSignIn,
+          formKey: _formKey,
+          text: 'Entrar',
+          isLoading: _isLoading,
+        ),
+        const SizedBox(height: 24),
+        const AuthDivider(),
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: SquareTile(
+            onTap: _handleGitHubSignIn,
+            imagePath: 'assets/icons/github.svg',
+            height: 24,
+            label: 'Continuar com GitHub',
           ),
         ),
+      ],
+      footer: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'Novo por aqui?',
+            style: TextStyle(color: AppColors.muted, fontSize: 14),
+          ),
+          TextButton(
+            onPressed: widget.onTap,
+            child: const Text('Registre-se'),
+          ),
+        ],
       ),
     );
   }

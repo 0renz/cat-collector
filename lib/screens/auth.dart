@@ -28,11 +28,13 @@ class AuthScreenState extends State<AuthScreen>{
               child: Text('Não foi possível verificar a sessão: ${snapshot.error}'),
             );
           }
-          if (snapshot.hasData){
-            return MenuOptions();
-          }else{
-            return LoginOrRegisterScreen();
-          }
+          // Entrar e sair do app acontecem com uma transição suave.
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            child: snapshot.hasData
+                ? const MenuOptions(key: ValueKey('menu'))
+                : const LoginOrRegisterScreen(key: ValueKey('auth')),
+          );
         },
       ),
     );

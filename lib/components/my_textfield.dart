@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class MyTextField extends StatefulWidget {
   final TextEditingController controller;
   final String hintText;
-  final icon;
+  final Widget icon;
   final bool obscureText;
   final bool capitalization;
+  final TextInputType? keyboardType;
 
   const MyTextField({
     super.key,
@@ -14,6 +16,7 @@ class MyTextField extends StatefulWidget {
     required this.icon,
     required this.obscureText,
     required this.capitalization,
+    this.keyboardType,
   });
 
   @override
@@ -23,46 +26,40 @@ class MyTextField extends StatefulWidget {
 }
 
 class MyTextFieldState extends State<MyTextField> {
+  // Campos de senha ganham um botão para mostrar/ocultar o texto.
+  late bool _hidden = widget.obscureText;
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 55,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
-        child: TextFormField(
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Preenchimento obrigatório!';
-            }
-            return null;
-          },
-          onFieldSubmitted: (value) {
-            setState(() {
-              widget.controller.text = value;
-            });
-          },
-          textCapitalization: widget.capitalization
-              ? TextCapitalization.words
-              : TextCapitalization.none,
-          controller: widget.controller,
-          obscureText: widget.obscureText,
-          decoration: InputDecoration(
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20.0),
-                borderSide: BorderSide(color: Colors.grey.shade400),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20.0),
-                borderSide: BorderSide(color: Colors.grey.shade600),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade300,
-              hintText: widget.hintText,
-              hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 15),
-              prefixIcon: Padding(
-                padding: EdgeInsets.all(0.0),
-                child: widget.icon,
-              )),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: TextFormField(
+        controller: widget.controller,
+        obscureText: _hidden,
+        keyboardType: widget.keyboardType,
+        textCapitalization: widget.capitalization
+            ? TextCapitalization.words
+            : TextCapitalization.none,
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Preenchimento obrigatório!';
+          }
+          return null;
+        },
+        decoration: appInputDecoration(
+          hint: widget.hintText,
+          prefix: widget.icon,
+          suffix: widget.obscureText
+              ? IconButton(
+                  tooltip: _hidden ? 'Mostrar senha' : 'Ocultar senha',
+                  icon: Icon(
+                    _hidden
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () => setState(() => _hidden = !_hidden),
+                )
+              : null,
         ),
       ),
     );

@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../components/confirm_dialog.dart';
 import '../components/tag_sheets.dart';
+import '../components/fade_in.dart';
+import '../theme/app_theme.dart';
 import '../models/saved_cat.dart';
 import '../services/user_service.dart';
 
@@ -120,7 +122,14 @@ class _BibliotecaGatosScreenState extends State<BibliotecaGatosScreen> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
-            child: Text('Não foi possível carregar a biblioteca: ${snapshot.error}'),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Não foi possível carregar a biblioteca: ${snapshot.error}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.muted),
+              ),
+            ),
           );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -132,8 +141,10 @@ class _BibliotecaGatosScreenState extends State<BibliotecaGatosScreen> {
             .whereType<SavedCat>()
             .toList();
         if (cats.isEmpty) {
-          return const Center(
-            child: Text('Sua biblioteca ainda está vazia.'),
+          return const EmptyState(
+            title: 'Sua biblioteca está vazia',
+            message:
+                'Guarde gatinhos na tela "Encontrar gatos" e eles aparecem aqui.',
           );
         }
 
@@ -166,7 +177,7 @@ class _BibliotecaGatosScreenState extends State<BibliotecaGatosScreen> {
           children: [
             if (counts.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                 child: _TagFilterField(
                   selected: selected,
                   onTap: () => _openFilter(counts),
@@ -175,20 +186,23 @@ class _BibliotecaGatosScreenState extends State<BibliotecaGatosScreen> {
                 ),
               ),
             Expanded(
-              child: visible.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('Nenhum gato com todas essas tags.'),
-                          TextButton(
-                            onPressed: () => setState(_selectedTags.clear),
-                            child: const Text('Limpar filtro'),
-                          ),
-                        ],
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                layoutBuilder: expandedSwitcherLayout,
+                child: visible.isEmpty
+                    ? EmptyState(
+                        key: const ValueKey('sem-resultado'),
+                        title: 'Nenhum gato com essas tags',
+                        message:
+                            'Nenhum gato guardado tem todas as tags selecionadas.',
+                        actionLabel: 'Limpar filtro',
+                        onAction: () => setState(_selectedTags.clear),
+                      )
+                    : KeyedSubtree(
+                        key: const ValueKey('grade'),
+                        child: _buildGrid(visible),
                       ),
-                    )
-                  : _buildGrid(visible),
+              ),
             ),
           ],
         );
@@ -198,79 +212,144 @@ class _BibliotecaGatosScreenState extends State<BibliotecaGatosScreen> {
 
   Widget _buildGrid(List<SavedCat> cats) {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
         childAspectRatio: 0.62,
       ),
       itemCount: cats.length,
       itemBuilder: (context, index) {
         final cat = cats[index];
-        final isFavorite = cat.id == _favoriteCatId;
-        return Card(
-          clipBehavior: Clip.antiAlias,
-          // Borda dourada destaca o gato que é a foto de perfil.
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: isFavorite
-                ? const BorderSide(color: Colors.amber, width: 3)
-                : BorderSide.none,
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  color: Colors.grey.shade200,
-                  // contain: mostra o gato inteiro, sem cortar as bordas.
-                  child: Image.network(
-                    cat.imageUrl,
-                    fit: BoxFit.contain,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(child: CircularProgressIndicator());
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(child: Text('Imagem indisponível'));
-                    },
-                  ),
+        return FadeSlideIn(
+          key: ValueKey(cat.id),
+          offsetY: 12,
+          duration: const Duration(milliseconds: 350),
+          child: _buildCard(cat),
+        );
+      },
+    );
+  }
+
+  Widget _buildCard(SavedCat cat) {
+    final isFavorite = cat.id == _favoriteCatId;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppShadows.soft,
+        // Borda dourada destaca o gato que é a foto de perfil.
+        border: Border.all(
+          color: isFavorite ? AppColors.gold : Colors.transparent,
+          width: 2.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const ColoredBox(color: AppColors.sand),
+                    // contain: mostra o gato inteiro, sem cortar as bordas.
+                    Image.network(
+                      cat.imageUrl,
+                      fit: BoxFit.contain,
+                      frameBuilder: (context, child, frame, wasSync) {
+                        if (wasSync) return child;
+                        return AnimatedOpacity(
+                          opacity: frame == null ? 0 : 1,
+                          duration: const Duration(milliseconds: 350),
+                          child: child,
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(child: CircularProgressIndicator());
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Text(
+                            'Imagem indisponível',
+                            style: TextStyle(color: AppColors.muted),
+                          ),
+                        );
+                      },
+                    ),
+                    // Selo dourado: este gato é a foto de perfil.
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: AnimatedScale(
+                        scale: isFavorite ? 1 : 0,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutBack,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.gold,
+                          ),
+                          child: const Icon(
+                            Icons.star,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              _CatTagsRow(tags: cat.tags),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  IconButton(
-                    tooltip: isFavorite
-                        ? 'Remover dos favoritos (foto de perfil)'
-                        : 'Definir como gato favorito (foto de perfil)',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _toggleFavorite(cat),
-                    icon: Icon(isFavorite ? Icons.star : Icons.star_border),
-                    color: Colors.amber.shade700,
+            ),
+          ),
+          _CatTagsRow(tags: cat.tags),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              IconButton(
+                tooltip: isFavorite
+                    ? 'Remover dos favoritos (foto de perfil)'
+                    : 'Definir como gato favorito (foto de perfil)',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _toggleFavorite(cat),
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  transitionBuilder: (child, animation) =>
+                      ScaleTransition(scale: animation, child: child),
+                  child: Icon(
+                    isFavorite ? Icons.star : Icons.star_border,
+                    key: ValueKey(isFavorite),
                   ),
-                  IconButton(
-                    tooltip: 'Editar tags',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _editTags(cat),
-                    icon: const Icon(Icons.edit_outlined),
-                    color: Colors.deepPurple,
-                  ),
-                  IconButton(
-                    tooltip: 'Excluir gato',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _deleteCat(cat),
-                    icon: const Icon(Icons.delete_outline),
-                    color: Colors.red,
-                  ),
-                ],
+                ),
+                color: isFavorite ? AppColors.gold : AppColors.muted,
+              ),
+              IconButton(
+                tooltip: 'Editar tags',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _editTags(cat),
+                icon: const Icon(Icons.edit_outlined),
+                color: AppColors.muted,
+              ),
+              IconButton(
+                tooltip: 'Excluir gato',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _deleteCat(cat),
+                icon: const Icon(Icons.delete_outline),
+                color: AppColors.danger,
               ),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 4),
+        ],
+      ),
     );
   }
 }
@@ -284,17 +363,17 @@ class _CatTagsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 36,
+      height: 34,
       child: tags.isEmpty
-          ? Center(
+          ? const Center(
               child: Text(
                 'Sem tags',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                style: TextStyle(fontSize: 12, color: AppColors.muted),
               ),
             )
           : ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               itemCount: tags.length,
               separatorBuilder: (_, __) => const SizedBox(width: 4),
               itemBuilder: (context, index) {
@@ -332,31 +411,29 @@ class _TagFilterField extends StatelessWidget {
     final sorted = selected.toList()..sort();
 
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(28),
       onTap: onTap,
       child: InputDecorator(
         isEmpty: false,
-        decoration: InputDecoration(
-          labelText: 'Filtrar por tags',
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: const Icon(Icons.filter_list),
-          suffixIcon: selected.isEmpty
-              ? const Icon(Icons.arrow_drop_down)
-              : IconButton(
-                  tooltip: 'Limpar filtro',
-                  icon: const Icon(Icons.close),
-                  onPressed: onClear,
-                ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
+        decoration: appInputDecoration(
+          radius: 28,
+          prefix: const Icon(Icons.filter_list),
+          suffix: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: selected.isEmpty
+                ? const Icon(Icons.arrow_drop_down, key: ValueKey('abrir'))
+                : IconButton(
+                    key: const ValueKey('limpar'),
+                    tooltip: 'Limpar filtro',
+                    icon: const Icon(Icons.close),
+                    onPressed: onClear,
+                  ),
           ),
         ),
         child: selected.isEmpty
-            ? Text(
-                'Todas as tags',
-                style: TextStyle(color: Colors.grey.shade600),
+            ? const Text(
+                'Filtrar por tags',
+                style: TextStyle(color: AppColors.muted),
               )
             : Wrap(
                 spacing: 6,

@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../components/fade_in.dart';
+import '../services/user_service.dart';
+import '../theme/app_theme.dart';
 import 'biblioteca_gatos.dart';
 import 'gatos.dart';
-import '../services/user_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class MenuOptions extends StatefulWidget {
   const MenuOptions({super.key});
@@ -14,9 +16,6 @@ class MenuOptions extends StatefulWidget {
 }
 
 class _MenuOptionsState extends State<MenuOptions> {
-  static const Color deepPurple = Color(0xFF673AB7);
-  static const Color lightPurple = Color(0xFFD1C4E9);
-
   int pageIndex = 0;
   String userName = 'Usuário';
 
@@ -65,36 +64,6 @@ class _MenuOptionsState extends State<MenuOptions> {
     super.dispose();
   }
 
-  Widget _buildAvatar() {
-    const size = 64.0;
-    const fallback = Icon(Icons.person, size: 36, color: deepPurple);
-    final id = favoriteCatId;
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      child: ClipOval(
-        child: id == null
-            ? fallback
-            : Image.network(
-                UserService.catImageUrl(id),
-                key: ValueKey(id),
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return fallback;
-                },
-                errorBuilder: (context, error, stackTrace) => fallback,
-              ),
-      ),
-    );
-  }
-
   void setPaginaAtual(int index) {
     setState(() {
       pageIndex = index;
@@ -128,73 +97,129 @@ class _MenuOptionsState extends State<MenuOptions> {
     }
   }
 
+  /// Foto de perfil: o gato favorito, em um círculo com anel de destaque.
+  Widget _buildAvatar() {
+    const size = 72.0;
+    const fallback = Icon(Icons.person, size: 38, color: AppColors.primary);
+    final id = favoriteCatId;
+
+    return Container(
+      width: size,
+      height: size,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.surface,
+        border: Border.all(
+          color: id == null ? AppColors.line : AppColors.gold,
+          width: 3,
+        ),
+        boxShadow: AppShadows.soft,
+      ),
+      child: ClipOval(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          layoutBuilder: expandedSwitcherLayout,
+          child: id == null
+              ? const ColoredBox(
+                  key: ValueKey('sem-foto'),
+                  color: AppColors.primarySoft,
+                  child: Center(child: fallback),
+                )
+              : Image.network(
+                  UserService.catImageUrl(id),
+                  key: ValueKey(id),
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const ColoredBox(
+                      color: AppColors.primarySoft,
+                      child: Center(child: fallback),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return const ColoredBox(
+                      color: AppColors.primarySoft,
+                      child: Center(child: fallback),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerHeader() {
+    final email = FirebaseAuth.instance.currentUser?.email;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        24,
+        MediaQuery.of(context).padding.top + 28,
+        24,
+        24,
+      ),
+      child: Row(
+        children: [
+          _buildAvatar(),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  userName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                if (email != null && email.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          titulo,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: Text(titulo, key: ValueKey(titulo)),
         ),
       ),
 
       drawer: Drawer(
-        width: 290,
+        width: 300,
         child: Column(
           children: [
-            // Cabeçalho
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(
-                24,
-                55,
-                24,
-                28,
-              ),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    deepPurple,
-                    Color(0xFF512DA8),
-                  ],
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomRight: Radius.circular(24),
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildAvatar(),
-
-                  SizedBox(height: 18),
-
-                  Text(
-                    userName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  SizedBox(height: 4),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
+            _buildDrawerHeader(),
+            const Divider(indent: 24, endIndent: 24),
+            const SizedBox(height: 12),
 
             // Opções
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   _buildMenuItem(
                     index: 0,
@@ -208,14 +233,9 @@ class _MenuOptionsState extends State<MenuOptions> {
                     label: 'Biblioteca de gatos',
                     onTap: () => selecionarPagina(1),
                   ),
-
-                  const Divider(
-                    height: 32,
-                    indent: 16,
-                    endIndent: 16,
-                    thickness: 1,
-                  ),
-
+                  const SizedBox(height: 8),
+                  const Divider(indent: 8, endIndent: 8),
+                  const SizedBox(height: 8),
                   _buildMenuItem(
                     index: -1,
                     icon: Icons.logout_outlined,
@@ -227,47 +247,35 @@ class _MenuOptionsState extends State<MenuOptions> {
             ),
 
             // Rodapé
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const Divider(),
-
-                  const SizedBox(height: 8),
-
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 18,
-                        color: Colors.grey[600],
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      Text(
-                        'Criado por Lorenzo!!!!!!',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: const [
+                    Icon(Icons.pets, size: 16, color: AppColors.muted),
+                    SizedBox(width: 8),
+                    Text(
+                      'Criado por Lorenzo',
+                      style: TextStyle(color: AppColors.muted, fontSize: 13),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
 
-      // Só uma tela fica na árvore por vez. Antes, o PageView descartava a
-      // tela de gatos fora de vista e a recriava com a mesma URL (o cache de
-      // imagem devolvia o mesmo gato), e o GlobalKey apontava para um estado
-      // que já não existia.
-      body: pageIndex == 0
-          ? const GatosScreen(key: ValueKey('gatos'))
-          : const BibliotecaGatosScreen(key: ValueKey('biblioteca')),
+      // Só uma tela fica na árvore por vez, com transição suave entre elas.
+      // A tela de gatos é recriada ao voltar e sorteia um gato novo.
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        layoutBuilder: expandedSwitcherLayout,
+        child: pageIndex == 0
+            ? const GatosScreen(key: ValueKey('gatos'))
+            : const BibliotecaGatosScreen(key: ValueKey('biblioteca')),
+      ),
     );
   }
 
@@ -275,7 +283,7 @@ class _MenuOptionsState extends State<MenuOptions> {
     required int index,
     required IconData icon,
     required String label,
-    required VoidCallback? onTap
+    required VoidCallback? onTap,
   }) {
     final bool selecionado = pageIndex == index;
 
@@ -284,51 +292,36 @@ class _MenuOptionsState extends State<MenuOptions> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 13,
-            ),
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: selecionado
-                  ? lightPurple.withOpacity(0.55)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
+              color: selecionado ? AppColors.primarySoft : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
                 Icon(
                   icon,
-                  color: selecionado
-                      ? deepPurple
-                      : Colors.grey[700],
+                  color: selecionado ? AppColors.primary : AppColors.muted,
                 ),
-
                 const SizedBox(width: 16),
-
                 Expanded(
                   child: Text(
                     label,
                     style: TextStyle(
                       color: selecionado
-                          ? deepPurple
-                          : Colors.grey[800],
+                          ? AppColors.onPrimarySoft
+                          : AppColors.ink,
                       fontSize: 16,
-                      fontWeight: selecionado
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                      fontWeight:
+                          selecionado ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                 ),
-
-                if (selecionado)
-                  const Icon(
-                    Icons.chevron_right,
-                    color: deepPurple,
-                  ),
               ],
             ),
           ),

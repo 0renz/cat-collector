@@ -3,6 +3,7 @@ import '../components/confirm_dialog.dart';
 import '../models/saved_cat.dart';
 import '../services/tag_service.dart';
 import '../services/user_service.dart';
+import '../theme/app_theme.dart';
 
 /// Moldura comum das janelas inferiores: acompanha o teclado e limita a
 /// altura para que a lista interna role sem estourar a tela.
@@ -20,8 +21,9 @@ class _SheetFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
+    // O tema mostra uma alça de arrasto (~24 px) acima do conteúdo.
     final available =
-        media.size.height - media.viewInsets.bottom - media.padding.top - 16;
+        media.size.height - media.viewInsets.bottom - media.padding.top - 48;
     final height = available < media.size.height * 0.8
         ? available
         : media.size.height * 0.8;
@@ -31,7 +33,7 @@ class _SheetFrame extends StatelessWidget {
       child: SizedBox(
         height: height,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -41,8 +43,9 @@ class _SheetFrame extends StatelessWidget {
                     child: Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
                       ),
                     ),
                   ),
@@ -63,12 +66,11 @@ class _SheetFrame extends StatelessWidget {
   }
 }
 
-InputDecoration _searchDecoration(String label) {
-  return InputDecoration(
-    labelText: label,
-    prefixIcon: const Icon(Icons.search),
-    isDense: true,
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+InputDecoration _searchDecoration(String hint) {
+  return appInputDecoration(
+    hint: hint,
+    prefix: const Icon(Icons.search),
+    radius: 28,
   );
 }
 
@@ -309,7 +311,10 @@ class _EditTagsSheetState extends State<EditTagsSheet> {
             return ListTile(
               dense: true,
               title: Text(tag),
-              trailing: const Icon(Icons.add_circle_outline),
+              trailing: const Icon(
+                Icons.add_circle_outline,
+                color: AppColors.primary,
+              ),
               enabled: !_busy,
               onTap: () => _addTag(tag),
             );
